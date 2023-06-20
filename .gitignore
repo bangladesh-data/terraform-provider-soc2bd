@@ -1,0 +1,57 @@
+# IDE
+.vscode/
+.idea
+
+# system files
+*.dll
+*.exe
+.DS_Store
+*.log
+*.bak
+*~
+.*.swp
+*.iml
+*.test
+
+# terraform files
+terraform.tfvars
+terraform.tfplan
+terraform.tfstate
+./*.tfstate
+.terraform/
+.terraform.lock.hcl
+vars.tfvars
+
+# generated build files
+bin/
+build/
+terraform-provider-soc2bd
+
+# other files
+modules-dev/
+/pkg/
+
+# website
+website/.vagrant
+website/.bundle
+website/build
+website/node_modules
+.vagrant/
+
+# backup
+*.backup
+
+# examples
+examples_local/
+
+# vendors
+vendor/
+website/vendor
+
+# test results
+test_results
+
+# Test exclusions
+!command/test-fixtures/**/*.tfstate
+!command/test-fixtures/**/.terraform/
+

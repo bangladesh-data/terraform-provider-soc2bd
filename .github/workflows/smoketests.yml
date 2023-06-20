@@ -1,0 +1,142 @@
+# This GitHub action runs your tests for each commit push and/or PR. Optionally
+# you can turn it on using a cron schedule for regular testing.
+#
+name: Smoke Tests
+permissions: read-all
+on:
+  schedule:
+    - cron: "0 */3 * * *"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+      id: go
+
+    - name: go env
+      run: echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+
+    - name: Get dependencies
+      run: |
+        go mod download
+
+    - name: Build
+      run: |
+        make build
+
+  tests-acceptance:
+    name: Matrix Acceptance Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        terraform:
+          - '1.2.*'
+          - '1.3.*'
+          - 'latest'
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: 'go.mod'
+        cache: true
+      id: go
+
+    - uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ matrix.terraform }}
+        terraform_wrapper: false
+
+    - name: go env
+      run: echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+
+    - uses: actions/cache@v3
+      continue-on-error: true
+      timeout-minutes: 2
+      with:
+        path: ${{ env.GOCACHE }}
+        key: ${{ runner.os }}-GOCACHE-${{ hashFiles('go.sum') }}-${{ hashFiles('internal/**') }}
+
+    - uses: actions/cache@v3
+      continue-on-error: true
+      timeout-minutes: 2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-pkg-mod-${{ hashFiles('go.sum') }}
+
+    - name: Get dependencies
+      run: |
+        go mod download
+
+    - name: Acceptance tests
+      timeout-minutes: 10
+      env:
+        SOC2BD_URL: ${{ secrets.SOC2BD_URL }}
+        SOC2BD_NETWORK: ${{ secrets.SOC2BD_NETWORK }}
+        SOC2BD_API_TOKEN: ${{ secrets.SOC2BD_API_TOKEN }}
+        TEST_UNIQUE_VALUE: ${{ github.run_id }}-${{ github.run_number }}-${{ matrix.terraform }}
+      run: |
+        make testacc
+
+    - name: Report Status
+      if: always()
+      uses: ravsamhq/notify-slack-action@v1
+      with:
+        status: ${{ job.status }}
+        notification_title: "Terraform Provider {workflow} has {status_message}"
+        message_format: "{emoji} *{workflow} (<{run_url}|{job}-${{ join(matrix.*, ' - ') }}>)* {status_message} in <{repo_url}|{repo}>"
+        footer: "Linked Repo <{repo_url}|{repo}>"
+        notify_when: 'failure'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_OPS_WEBHOOK }}
+
+  cleanup:
+    name: Cleanup
+    if: always()
+    needs: tests-acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+        id: go
+
+      - name: go env
+        run: echo "GOCACHE=$(go env GOCACHE)" >> $GITHUB_ENV
+
+      - name: Get dependencies
+        run: |
+          go mod download
+
+      - name: Run sweepers
+        timeout-minutes: 10
+        env:
+          SOC2BD_URL: ${{ secrets.SOC2BD_URL }}
+          SOC2BD_NETWORK: ${{ secrets.SOC2BD_NETWORK }}
+          SOC2BD_API_TOKEN: ${{ secrets.SOC2BD_API_TOKEN }}
+          TEST_UNIQUE_VALUE: ${{ github.run_id }}-${{ github.run_number }}
+        run: |
+          make sweep

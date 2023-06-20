@@ -1,0 +1,72 @@
+
+run:
+  concurrency: 4
+  deadline: 2m
+  issues-exit-code: 1
+  tests: false
+  skip-dirs: []
+  skip-files: []
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  errcheck:
+    check-type-assertions: false
+    check-blank: false
+  govet:
+    check-shadowing: true
+    use-installed-packages: false
+  gofmt:
+    simplify: true
+  gocyclo:
+    min-complexity: 20
+  dupl:
+    threshold: 200
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  depguard:
+    list-type: blacklist
+    include-go-root: false
+    packages:
+      - github.com/davecgh/go-spew/spew
+  nestif:
+    min-complexity: 7
+linters:
+  enable-all: true
+  disable:
+    - deadcode
+    - exhaustivestruct
+    - exhaustruct
+    - forcetypeassert
+    - gofumpt
+    - golint
+    - ifshort
+    - interfacer
+    - lll
+    - maligned
+    - nosnakecase
+    - scopelint
+    - structcheck
+    - varcheck
+    - revive
+  disable-all: false
+  fast: false
+
+issues:
+  exclude:
+    - should have comment
+    - "shadow: declaration of \"err\" shadows declaration"
+
+  exclude-rules:
+    - linters:
+        - stylecheck
+      text: "ST1000:"
+
+  exclude-use-default: false
+  max-per-linter: 0
+  max-same: 0
+  new: false

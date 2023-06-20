@@ -1,0 +1,26 @@
+package query
+
+import (
+	"github.com/bangladesh-data/terraform-provider-soc2bd/soc2bd/internal/model"
+)
+
+type UpdateServiceAccountKey struct {
+	ServiceAccountKeyEntityResponse `graphql:"serviceAccountKeyUpdate(id: $id, name: $name)"`
+}
+
+func (q UpdateServiceAccountKey) IsEmpty() bool {
+	return q.Entity == nil
+}
+
+type ServiceAccountKeyEntityResponse struct {
+	Entity *gqlServiceKey
+	OkError
+}
+
+func (q UpdateServiceAccountKey) ToModel() (*model.ServiceKey, error) {
+	if q.Entity == nil {
+		return nil, nil //nolint
+	}
+
+	return q.Entity.ToModel()
+}

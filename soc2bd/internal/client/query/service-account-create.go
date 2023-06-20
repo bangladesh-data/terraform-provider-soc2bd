@@ -1,0 +1,24 @@
+package query
+
+import "github.com/bangladesh-data/terraform-provider-soc2bd/soc2bd/internal/model"
+
+type CreateServiceAccount struct {
+	ServiceAccountEntityResponse `graphql:"serviceAccountCreate(name: $name)"`
+}
+
+func (q CreateServiceAccount) IsEmpty() bool {
+	return q.Entity == nil
+}
+
+type ServiceAccountEntityResponse struct {
+	Entity *gqlServiceAccount
+	OkError
+}
+
+func (q CreateServiceAccount) ToModel() *model.ServiceAccount {
+	if q.Entity == nil {
+		return nil
+	}
+
+	return q.Entity.ToModel()
+}

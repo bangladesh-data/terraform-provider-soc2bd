@@ -1,0 +1,1 @@
+terraform import soc2bd_connector.aws_connector Q29ubmVjdG9yOjI2NzM=
